@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from cookbook.exceptions import NotFoundError
 from cookbook.models import Ingredient, Recipe
 from cookbook.repositories.ingredient_repository import IngredientRepository
 from cookbook.repositories.recipe_repository import RecipeRepository
@@ -39,7 +40,7 @@ async def create_recipe_service(data: RecipeCreate, db: AsyncSession):
 async def update_recipe_service(recipe_id: int, data: RecipeUpdate, db: AsyncSession):
     recipe = await RecipeRepository.get_by_id(db, recipe_id)
     if recipe is None:
-        return None
+        raise NotFoundError("Рецепт не найден")
 
     try:
         update_data = data.model_dump(exclude_unset=True)
@@ -50,9 +51,9 @@ async def update_recipe_service(recipe_id: int, data: RecipeUpdate, db: AsyncSes
         if "ingredients" in update_data:
             new_ingredients = []
             for ing_data in update_data["ingredients"]:
-                ingredient = await IngredientRepository.get_by_name(db, ing_data.name)
+                ingredient = await IngredientRepository.get_by_name(db, ing_data['name'])
                 if ingredient is None:
-                    ingredient = Ingredient(name=ing_data.name)
+                    ingredient = Ingredient(name=ing_data['name'])
                     await IngredientRepository.create(db, ingredient)
                 new_ingredients.append(ingredient)
 
@@ -71,7 +72,7 @@ async def update_recipe_service(recipe_id: int, data: RecipeUpdate, db: AsyncSes
 async def delete_recipe_service(recipe_id: int, db: AsyncSession):
     recipe = await RecipeRepository.get_by_id(db, recipe_id)
     if recipe is None:
-        return None
+        raise NotFoundError("Рецепт не найден")
 
     try:
         await RecipeRepository.delete(db, recipe)

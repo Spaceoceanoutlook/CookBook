@@ -1,9 +1,13 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class IngredientBase(BaseModel):
     name: str = Field(..., max_length=100)
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("name")
+    def normalize_name(cls, v: str) -> str:
+        return v.strip().lower()
 
 
 class IngredientCreate(IngredientBase):

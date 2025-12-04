@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from cookbook.exceptions import AlreadyExistsError, NotFoundError
 from cookbook.models import Ingredient
 from cookbook.repositories.ingredient_repository import IngredientRepository
 from cookbook.schemas.ingredient import IngredientCreate
@@ -12,7 +13,7 @@ async def get_all_ingredients(db: AsyncSession):
 async def create_ingredient_service(data: IngredientCreate, db: AsyncSession):
     existing = await IngredientRepository.get_by_name(db, data.name)
     if existing:
-        raise ValueError(f"Ингредиент '{data.name}' уже существует")
+        raise AlreadyExistsError(f"Ингредиент '{data.name}' уже существует")
     ingredient = Ingredient(**data.model_dump())
 
     try:
@@ -28,7 +29,7 @@ async def create_ingredient_service(data: IngredientCreate, db: AsyncSession):
 async def delete_ingredient_service(ingredient_id: int, db: AsyncSession):
     ingredient = await IngredientRepository.get_by_id(db, ingredient_id)
     if ingredient is None:
-        return None
+        raise NotFoundError("Ингредиент не найден")
 
     try:
         await IngredientRepository.delete(db, ingredient)
