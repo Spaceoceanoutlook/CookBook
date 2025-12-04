@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from cookbook.models import Ingredient
 from cookbook.repositories.ingredient_repository import IngredientRepository
-from cookbook.schemas.ingredient import IngredientCreate, IngredientUpdate
+from cookbook.schemas.ingredient import IngredientCreate
 
 
 async def get_all_ingredients(db: AsyncSession):
@@ -10,6 +10,9 @@ async def get_all_ingredients(db: AsyncSession):
 
 
 async def create_ingredient_service(data: IngredientCreate, db: AsyncSession):
+    existing = await IngredientRepository.get_by_name(db, data.name)
+    if existing:
+        raise ValueError(f"Ингредиент '{data.name}' уже существует")
     ingredient = Ingredient(**data.model_dump())
 
     try:
