@@ -14,8 +14,8 @@ def event_loop():
     loop.close()
 
 
-@pytest.fixture
-async def db(scope="function"):
+@pytest.fixture(scope="function")
+async def db():
     engine = create_async_engine(
         "sqlite+aiosqlite:///:memory:", echo=False, future=True
     )

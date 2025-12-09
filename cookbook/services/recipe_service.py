@@ -12,12 +12,15 @@ async def get_all_recipes(db: AsyncSession):
 
 
 async def get_recipe_by_id(recipe_id: int, db: AsyncSession):
-    return await RecipeRepository.get_by_id(db, recipe_id)
+    recipe = await RecipeRepository.get_by_id(db, recipe_id)
+    if recipe is None:
+        raise NotFoundError("Рецепт не найден")
+    return recipe
 
 
 async def create_recipe_service(data: RecipeCreate, db: AsyncSession):
     recipe = Recipe(title=data.title, description=data.description)
-
+    ing_list = []
     try:
         for ing_data in data.ingredients:
             ingredient = await IngredientRepository.get_by_name(db, ing_data.name)
@@ -25,8 +28,9 @@ async def create_recipe_service(data: RecipeCreate, db: AsyncSession):
                 ingredient = Ingredient(name=ing_data.name)
                 await IngredientRepository.create(db, ingredient)
 
-            recipe.ingredients.append(ingredient)
+            ing_list.append(ingredient)
 
+        recipe.ingredients = ing_list
         await RecipeRepository.create(db, recipe)
         await db.commit()
         await db.refresh(recipe, attribute_names=["ingredients"])
