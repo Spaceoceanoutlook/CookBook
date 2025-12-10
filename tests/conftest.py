@@ -1,9 +1,12 @@
 import asyncio
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+from cookbook.database import get_db
+from cookbook.main import app
 from cookbook.models import Base
 
 
@@ -31,3 +34,18 @@ async def db():
     async with AsyncSessionLocal() as session:
         yield session
         await session.close()
+
+
+@pytest.fixture(scope="function")
+def client(db):
+    from cookbook import database
+
+    async def override_get_db():
+        yield db
+
+    app.dependency_overrides[database.get_db] = override_get_db
+
+    with TestClient(app) as c:
+        yield c
+
+    app.dependency_overrides.clear()

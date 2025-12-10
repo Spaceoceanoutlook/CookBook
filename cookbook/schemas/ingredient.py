@@ -2,7 +2,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class IngredientBase(BaseModel):
-    name: str = Field(..., max_length=100)
+    name: str = Field(..., min_length=1, max_length=100)
     model_config = ConfigDict(from_attributes=True)
 
     @field_validator("name")

@@ -55,9 +55,11 @@ async def update_recipe_service(recipe_id: int, data: RecipeUpdate, db: AsyncSes
         if "ingredients" in update_data:
             new_ingredients = []
             for ing_data in update_data["ingredients"]:
-                ingredient = await IngredientRepository.get_by_name(db, ing_data['name'])
+                ingredient = await IngredientRepository.get_by_name(
+                    db, ing_data["name"]
+                )
                 if ingredient is None:
-                    ingredient = Ingredient(name=ing_data['name'])
+                    ingredient = Ingredient(name=ing_data["name"])
                     await IngredientRepository.create(db, ingredient)
                 new_ingredients.append(ingredient)
 
