@@ -1,4 +1,4 @@
-from sqlalchemy import String, Text
+from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from cookbook.models.base import Base
@@ -16,3 +16,6 @@ class Recipe(Base):
         secondary="recipe_ingredients",
         back_populates="recipes",
     )
+
+    owner_id = mapped_column(ForeignKey("users.id"), nullable=False)
+    owner = relationship("User")

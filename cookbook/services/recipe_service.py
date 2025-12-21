@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from cookbook.exceptions import NotFoundError
-from cookbook.models import Ingredient, Recipe
+from cookbook.core.exceptions import NotFoundError
+from cookbook.models import Ingredient, Recipe, User
 from cookbook.repositories.ingredient_repository import IngredientRepository
 from cookbook.repositories.recipe_repository import RecipeRepository
 from cookbook.schemas.recipe import RecipeCreate, RecipeUpdate
@@ -18,8 +18,12 @@ async def get_recipe_by_id(recipe_id: int, db: AsyncSession):
     return recipe
 
 
-async def create_recipe_service(data: RecipeCreate, db: AsyncSession):
-    recipe = Recipe(title=data.title, description=data.description)
+async def create_recipe_service(
+    data: RecipeCreate, db: AsyncSession, current_user: User
+):
+    recipe = Recipe(
+        title=data.title, description=data.description, owner_id=current_user.id
+    )
     ing_list = []
     try:
         for ing_data in data.ingredients:
@@ -41,10 +45,18 @@ async def create_recipe_service(data: RecipeCreate, db: AsyncSession):
         raise
 
 
-async def update_recipe_service(recipe_id: int, data: RecipeUpdate, db: AsyncSession):
+async def update_recipe_service(
+    recipe_id: int, data: RecipeUpdate, db: AsyncSession, current_user: User
+):
     recipe = await RecipeRepository.get_by_id(db, recipe_id)
     if recipe is None:
         raise NotFoundError("Рецепт не найден")
+
+    if recipe.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для изменения этого рецепта",
+        )
 
     try:
         update_data = data.model_dump(exclude_unset=True)
@@ -75,11 +87,15 @@ async def update_recipe_service(recipe_id: int, data: RecipeUpdate, db: AsyncSes
         raise
 
 
-async def delete_recipe_service(recipe_id: int, db: AsyncSession):
+async def delete_recipe_service(recipe_id: int, db: AsyncSession, current_user: User):
     recipe = await RecipeRepository.get_by_id(db, recipe_id)
     if recipe is None:
         raise NotFoundError("Рецепт не найден")
-
+    if recipe.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет прав для удаления этого рецепта",
+        )
     try:
         await RecipeRepository.delete(db, recipe)
         await db.commit()

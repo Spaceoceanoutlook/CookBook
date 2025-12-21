@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from cookbook.database import get_db
-from cookbook.exceptions import AlreadyExistsError, NotFoundError
+from cookbook.core.database import get_db
+from cookbook.core.exceptions import AlreadyExistsError, NotFoundError
 from cookbook.schemas.ingredient import (
     IngredientCreate,
     IngredientRead,

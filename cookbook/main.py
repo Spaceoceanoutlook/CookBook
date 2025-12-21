@@ -1,10 +1,11 @@
 import uvicorn
 from fastapi import FastAPI
 
-from cookbook.routers import ingredient_router, recipe_router
+from cookbook.routers import auth_router, ingredient_router, recipe_router
 
 app = FastAPI(title="Cookbook API", version="1.0.0")
 
+app.include_router(auth_router.router)
 app.include_router(ingredient_router.router)
 app.include_router(recipe_router.router)
 

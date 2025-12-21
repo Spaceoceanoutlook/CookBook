@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from cookbook.database import get_db
-from cookbook.exceptions import NotFoundError
+from cookbook.core.database import get_db
+from cookbook.core.exceptions import NotFoundError
+from cookbook.core.security import get_current_user
 from cookbook.schemas.recipe import RecipeCreate, RecipeRead, RecipeUpdate
 from cookbook.services.recipe_service import (
     create_recipe_service,
@@ -47,9 +48,13 @@ async def get_recipe(recipe_id: int, db: AsyncSession = Depends(get_db)):
     response_model=RecipeRead,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_recipe(new_recipe: RecipeCreate, db: AsyncSession = Depends(get_db)):
+async def create_recipe(
+    new_recipe: RecipeCreate,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     try:
-        return await create_recipe_service(new_recipe, db)
+        return await create_recipe_service(new_recipe, db, current_user)
     except SQLAlchemyError:
         raise HTTPException(
             status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка базы данных"
@@ -62,10 +67,13 @@ async def create_recipe(new_recipe: RecipeCreate, db: AsyncSession = Depends(get
     response_model=RecipeRead,
 )
 async def update_recipe(
-    recipe_id: int, update_data: RecipeUpdate, db: AsyncSession = Depends(get_db)
+    recipe_id: int,
+    update_data: RecipeUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     try:
-        return await update_recipe_service(recipe_id, update_data, db)
+        return await update_recipe_service(recipe_id, update_data, db, current_user)
     except NotFoundError as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(e))
     except SQLAlchemyError:
@@ -79,9 +87,13 @@ async def update_recipe(
     summary="Удаление рецепта",
     response_model=RecipeRead,
 )
-async def delete_recipe(recipe_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_recipe(
+    recipe_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     try:
-        return await delete_recipe_service(recipe_id, db)
+        return await delete_recipe_service(recipe_id, db, current_user)
     except NotFoundError as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(e))
     except SQLAlchemyError:
