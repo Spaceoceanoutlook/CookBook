@@ -69,8 +69,8 @@ async def create_recipe(
 async def update_recipe(
     recipe_id: int,
     update_data: RecipeUpdate,
-    db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     try:
         return await update_recipe_service(recipe_id, update_data, db, current_user)
@@ -89,8 +89,8 @@ async def update_recipe(
 )
 async def delete_recipe(
     recipe_id: int,
-    db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     try:
         return await delete_recipe_service(recipe_id, db, current_user)
