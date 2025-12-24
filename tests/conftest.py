@@ -1,13 +1,15 @@
 import asyncio
 
 import pytest
+from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from cookbook.database import get_db
+from cookbook.core.database import get_db
+from cookbook.core.security import hash_password
 from cookbook.main import app
-from cookbook.models import Base
+from cookbook.models import Base, User
 
 
 @pytest.fixture(scope="session")
@@ -38,7 +40,7 @@ async def db():
 
 @pytest.fixture(scope="function")
 def client(db):
-    from cookbook import database
+    from cookbook.core import database
 
     async def override_get_db():
         yield db
@@ -49,3 +51,24 @@ def client(db):
         yield c
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+async def test_user(db: AsyncSession):
+    hashed_password = hash_password("test_password")
+    user = User(email="test@example.com", name="test", password_hash=hashed_password)
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+@pytest.fixture(scope="function")
+async def auth_token(client: TestClient, test_user: User):
+    login_data = {"username": "test@example.com", "password": "test_password"}
+    response = client.post("/auth/login", data=login_data)
+    assert response.status_code == status.HTTP_200_OK
+    token_data = response.json()
+    token = token_data.get("access_token")
+    assert token is not None, f"Токен не найден в ответе: {token_data}"
+    return f"Bearer {token}"

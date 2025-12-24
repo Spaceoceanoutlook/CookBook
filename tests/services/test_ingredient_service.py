@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from cookbook.exceptions import AlreadyExistsError, NotFoundError
+from cookbook.core.exceptions import AlreadyExistsError, NotFoundError
 from cookbook.models import Ingredient
 from cookbook.repositories.ingredient_repository import IngredientRepository
 from cookbook.schemas.ingredient import IngredientCreate

@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from cookbook.exceptions import NotFoundError
+from cookbook.core.exceptions import NotFoundError
 from cookbook.models import Ingredient, Recipe
 from cookbook.repositories.ingredient_repository import IngredientRepository
 from cookbook.repositories.recipe_repository import RecipeRepository
@@ -17,7 +17,7 @@ from cookbook.services.recipe_service import (
 )
 
 
-async def test_get_all_recipes(db: AsyncSession):
+async def test_get_all_recipes(db: AsyncSession, test_user):
     recipe_data1 = RecipeCreate(
         title="Pancakes",
         description="Delicious pancakes",
@@ -28,8 +28,8 @@ async def test_get_all_recipes(db: AsyncSession):
         description="Simple omelette",
         ingredients=[IngredientCreate(name="eggs"), IngredientCreate(name="cheese")],
     )
-    await create_recipe_service(recipe_data1, db)
-    await create_recipe_service(recipe_data2, db)
+    await create_recipe_service(recipe_data1, db, test_user)
+    await create_recipe_service(recipe_data2, db, test_user)
 
     recipes = await get_all_recipes(db)
 
@@ -40,13 +40,13 @@ async def test_get_all_recipes(db: AsyncSession):
     assert descriptions == {"Delicious pancakes", "Simple omelette"}
 
 
-async def test_get_recipe_by_id_success(db: AsyncSession):
+async def test_get_recipe_by_id_success(db: AsyncSession, test_user):
     recipe_data = RecipeCreate(
         title="Soup",
         description="Vegetable soup",
         ingredients=[IngredientCreate(name="carrot"), IngredientCreate(name="potato")],
     )
-    created_recipe = await create_recipe_service(recipe_data, db)
+    created_recipe = await create_recipe_service(recipe_data, db, test_user)
 
     recipe = await get_recipe_by_id(created_recipe.id, db)
 
@@ -63,14 +63,14 @@ async def test_get_recipe_by_id_not_found(db: AsyncSession):
         await get_recipe_by_id(9, db)
 
 
-async def test_create_recipe_service_success(db: AsyncSession):
+async def test_create_recipe_service_success(db: AsyncSession, test_user):
     recipe_data = RecipeCreate(
         title="Pizza",
         description="Homemade pizza",
         ingredients=[IngredientCreate(name="flour"), IngredientCreate(name="cheese")],
     )
 
-    result = await create_recipe_service(recipe_data, db)
+    result = await create_recipe_service(recipe_data, db, test_user)
 
     assert result.id is not None
     assert result.title == "pizza"
@@ -80,7 +80,9 @@ async def test_create_recipe_service_success(db: AsyncSession):
     assert ingredient_names == {"flour", "cheese"}
 
 
-async def test_create_recipe_service_creates_new_ingredients(db: AsyncSession):
+async def test_create_recipe_service_creates_new_ingredients(
+    db: AsyncSession, test_user
+):
     ing = IngredientCreate(name="Pepper")
     await create_ingredient_service(ing, db)
 
@@ -93,7 +95,7 @@ async def test_create_recipe_service_creates_new_ingredients(db: AsyncSession):
         ],
     )
 
-    result = await create_recipe_service(recipe_data, db)
+    result = await create_recipe_service(recipe_data, db, test_user)
 
     assert result.title == "salad"
     assert len(result.ingredients) == 2
@@ -108,13 +110,13 @@ async def test_create_recipe_service_creates_new_ingredients(db: AsyncSession):
     assert cucumber_db.name == "cucumber"
 
 
-async def test_update_recipe_service_success(db: AsyncSession):
+async def test_update_recipe_service_success(db: AsyncSession, test_user):
     initial_data = RecipeCreate(
         title="Cake",
         description="Chocolate cake",
         ingredients=[IngredientCreate(name="flour"), IngredientCreate(name="sugar")],
     )
-    created_recipe = await create_recipe_service(initial_data, db)
+    created_recipe = await create_recipe_service(initial_data, db, test_user)
 
     update_data = RecipeUpdate(
         title="Updated Cake",
@@ -122,7 +124,9 @@ async def test_update_recipe_service_success(db: AsyncSession):
         ingredients=[IngredientCreate(name="flour"), IngredientCreate(name="milk")],
     )
 
-    updated_recipe = await update_recipe_service(created_recipe.id, update_data, db)
+    updated_recipe = await update_recipe_service(
+        created_recipe.id, update_data, db, test_user
+    )
 
     assert updated_recipe.id == created_recipe.id
     assert updated_recipe.title == "updated cake"
@@ -131,17 +135,19 @@ async def test_update_recipe_service_success(db: AsyncSession):
     assert ingredient_names == {"flour", "milk"}
 
 
-async def test_update_recipe_service_partial_update(db: AsyncSession):
+async def test_update_recipe_service_partial_update(db: AsyncSession, test_user):
     initial_data = RecipeCreate(
         title="Salad",
         description="Green salad",
         ingredients=[IngredientCreate(name="onion"), IngredientCreate(name="tomato")],
     )
-    created_recipe = await create_recipe_service(initial_data, db)
+    created_recipe = await create_recipe_service(initial_data, db, test_user)
 
     update_data = RecipeUpdate(description="Fresh green salad")
 
-    updated_recipe = await update_recipe_service(created_recipe.id, update_data, db)
+    updated_recipe = await update_recipe_service(
+        created_recipe.id, update_data, db, test_user
+    )
 
     assert updated_recipe.id == created_recipe.id
     assert updated_recipe.title == "salad"
@@ -150,7 +156,7 @@ async def test_update_recipe_service_partial_update(db: AsyncSession):
     assert ingredient_names == {"onion", "tomato"}
 
 
-async def test_update_recipe_service_not_found(db: AsyncSession):
+async def test_update_recipe_service_not_found(db: AsyncSession, test_user):
     update_data = RecipeCreate(
         title="Pizza",
         description="Homemade pizza",
@@ -158,10 +164,10 @@ async def test_update_recipe_service_not_found(db: AsyncSession):
     )
 
     with pytest.raises(NotFoundError):
-        await update_recipe_service(9, update_data, db)
+        await update_recipe_service(9, update_data, db, test_user)
 
 
-async def test_delete_recipe_service_success(db: AsyncSession):
+async def test_delete_recipe_service_success(db: AsyncSession, test_user):
     recipe_data = RecipeCreate(
         title="Cookies",
         description="Chocolate chip cookies",
@@ -170,15 +176,15 @@ async def test_delete_recipe_service_success(db: AsyncSession):
             IngredientCreate(name="chocolate"),
         ],
     )
-    created_recipe = await create_recipe_service(recipe_data, db)
+    created_recipe = await create_recipe_service(recipe_data, db, test_user)
 
-    deleted = await delete_recipe_service(created_recipe.id, db)
+    deleted = await delete_recipe_service(created_recipe.id, db, test_user)
 
     assert deleted.id == created_recipe.id
     check = await RecipeRepository.get_by_id(db, created_recipe.id)
     assert check is None
 
 
-async def test_delete_recipe_service_not_found(db: AsyncSession):
+async def test_delete_recipe_service_not_found(db: AsyncSession, test_user):
     with pytest.raises(NotFoundError):
-        await delete_recipe_service(9, db)
+        await delete_recipe_service(9, db, test_user)

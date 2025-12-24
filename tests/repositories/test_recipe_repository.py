@@ -6,7 +6,7 @@ from cookbook.repositories.ingredient_repository import IngredientRepository
 from cookbook.repositories.recipe_repository import RecipeRepository
 
 
-async def create_test_recipe(db: AsyncSession) -> Recipe:
+async def create_test_recipe(db: AsyncSession, test_user) -> Recipe:
     salt = Ingredient(name="Salt")
     tomato = Ingredient(name="Tomato")
     await IngredientRepository.create(db, salt)
@@ -17,30 +17,33 @@ async def create_test_recipe(db: AsyncSession) -> Recipe:
         title="Tomato Salad",
         description="A simple salad with tomato and salt",
         ingredients=[salt, tomato],
+        owner_id=test_user.id,
     )
     await RecipeRepository.create(db, recipe)
     await db.commit()
     return recipe
 
 
-async def test_create_recipe(db: AsyncSession):
-    created = await create_test_recipe(db)
+async def test_create_recipe(db: AsyncSession, test_user):
+    created = await create_test_recipe(db, test_user)
     assert created.title == "Tomato Salad"
     assert len(created.ingredients) == 2
+    assert created.owner_id == test_user.id
 
 
-async def test_get_recipe_by_id(db: AsyncSession):
-    recipe = await create_test_recipe(db)
+async def test_get_recipe_by_id(db: AsyncSession, test_user):
+    recipe = await create_test_recipe(db, test_user)
     fetched = await RecipeRepository.get_by_id(db, recipe.id)
 
     assert fetched.title == recipe.title
     names = [ing.name for ing in fetched.ingredients]
     assert "Salt" in names
     assert "Tomato" in names
+    assert fetched.owner_id == test_user.id
 
 
-async def test_delete_recipe(db: AsyncSession):
-    recipe = await create_test_recipe(db)
+async def test_delete_recipe(db: AsyncSession, test_user):
+    recipe = await create_test_recipe(db, test_user)
     await RecipeRepository.delete(db, recipe)
 
     deleted = await RecipeRepository.get_by_id(db, recipe.id)
