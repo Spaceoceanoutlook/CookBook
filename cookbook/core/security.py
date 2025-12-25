@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -59,3 +60,11 @@ async def get_current_user(
         )
 
     return user
+
+
+def create_refresh_token() -> str:
+    return secrets.token_urlsafe(64)
+
+
+def get_refresh_token_expiration(days: int = 7) -> datetime:
+    return datetime.utcnow() + timedelta(days=days)
