@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cookbook.core.exceptions import AlreadyExistsError, AuthenticationError
@@ -55,3 +57,54 @@ async def login_user_service(
     await db.commit()
 
     return access_token, refresh_token_value
+
+
+async def refresh_tokens_service(
+    db: AsyncSession,
+    refresh_token_value: str,
+) -> tuple[str, str]:
+    token = await RefreshTokenRepository.get_by_token(
+        db,
+        refresh_token_value,
+    )
+
+    if not token or token.revoked:
+        raise AuthenticationError("Invalid refresh token")
+
+    if token.expires_at < datetime.utcnow():
+        await RefreshTokenRepository.revoke(db, token)
+        await db.commit()
+        raise AuthenticationError("Refresh token expired")
+
+    user_id = token.user_id
+
+    await RefreshTokenRepository.revoke(db, token)
+
+    new_refresh_value = create_refresh_token()
+    new_refresh = RefreshToken(
+        token=new_refresh_value,
+        user_id=user_id,
+        expires_at=get_refresh_token_expiration(),
+    )
+
+    await RefreshTokenRepository.create(db, new_refresh)
+
+    access_token = create_access_token(user_id)
+
+    await db.commit()
+
+    return access_token, new_refresh_value
+
+
+async def logout_service(
+    db: AsyncSession,
+    refresh_token_value: str,
+) -> None:
+    token = await RefreshTokenRepository.get_by_token(
+        db,
+        refresh_token_value,
+    )
+
+    if token and not token.revoked:
+        await RefreshTokenRepository.revoke(db, token)
+        await db.commit()
