@@ -11,6 +11,7 @@ class Settings(BaseSettings):
 
     jwt_secret: str
     jwt_expire_minutes: int
+    refresh_expire_days: int
 
     @property
     def sqlalchemy_url(self) -> str:

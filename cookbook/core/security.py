@@ -66,5 +66,5 @@ def create_refresh_token() -> str:
     return secrets.token_urlsafe(64)
 
 
-def get_refresh_token_expiration(days: int = 7) -> datetime:
-    return datetime.utcnow() + timedelta(days=days)
+def get_refresh_token_expiration(refresh_expire_days: int = 7) -> datetime:
+    return datetime.utcnow() + timedelta(days=refresh_expire_days)
